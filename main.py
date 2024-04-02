@@ -1,6 +1,6 @@
 import os
-from typing import Union, Optional
-from fastapi import FastAPI, Depends, HTTPException, status
+from typing import Union, Optional, Annotated
+from fastapi import FastAPI, Form, HTTPException, status
 from pydantic import BaseModel
 from enum import Enum
 
@@ -10,10 +10,11 @@ from tenacity import retry, stop_after_attempt, retry_if_exception_type, RetryEr
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 class Styles(str, Enum):
-    sad = "sad"
-    scary = "scary"
-    serious = "serious"
-    adventourous = "adventourous"
+    nothing = None
+    sad = "Sad"
+    scary = "Scary"
+    serious = "Serious"
+    adventourous = "Adventourous"
 
 class Story(BaseModel):
     topic: str
@@ -44,8 +45,40 @@ def generate_story(prompt: str):
 
     return result.choices[0].message.content
 
-@app.post("/write_story")
-def write_story(data: Story):
+@app.post("/v1/write_story")
+def v1_write_story(topic: Annotated[str, Form()], style: Annotated[Styles, Form()]):
+    try:
+        prompt = f"write a story under 500 words about {topic}"
+        if style != Styles.nothing:
+            prompt += f" in the style of {style}"
+            
+        story = generate_story(prompt)
+
+        if story:
+            rewrite_prompt = f"Rewrite this story in a funny way: {story}"
+            funny_story = generate_story(rewrite_prompt)
+            if funny_story:
+                return {
+                    "topic": topic,
+                    "style": style,
+                    "original_story": story,
+                    "funny_story": funny_story
+                }
+        
+        else:
+            return {"error": "Failed to generate story."}
+        
+    except APITimeoutError as e:
+        raise HTTPException(status_code=status.HTTP_408_REQUEST_TIMEOUT, detail=e.message)
+    
+    except RateLimitError as e:
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=e.message)
+
+    except APIStatusError as e:
+        raise HTTPException(status_code=e.status_code, detail=e.message)
+
+@app.post("/v2/write_story")
+def v2_write_story(data: Story):
     try:
         prompt = f"write a story under 500 words about {data.topic}"
         if data.style:
@@ -75,35 +108,3 @@ def write_story(data: Story):
 
     except APIStatusError as e:
         raise HTTPException(status_code=e.status_code, detail=e.message)
-    
-# @app.post("/write_story")
-# def write_story(topic: Annotated[str, Form()], style: Annotated[Styles, Form()]):
-#     try:
-#         prompt = f"write a story under 500 words about {topic}"
-#         if style:
-#             prompt += f" in the style of {style}"
-            
-#         story = generate_story(prompt)
-
-#         if story:
-#             rewrite_prompt = f"Rewrite this story in a funny way: {story}"
-#             funny_story = generate_story(rewrite_prompt)
-#             if funny_story:
-#                 return {
-#                     "topic": topic,
-#                     "style": style,
-#                     "original_story": story,
-#                     "funny_story": funny_story
-#                 }
-        
-#         else:
-#             return {"error": "Failed to generate story."}
-        
-#     except APITimeoutError as e:
-#         raise HTTPException(status_code=status.HTTP_408_REQUEST_TIMEOUT, detail=e.message)
-    
-#     except RateLimitError as e:
-#         raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=e.message)
-
-#     except APIStatusError as e:
-#         raise HTTPException(status_code=e.status_code, detail=e.message)
