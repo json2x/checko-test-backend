@@ -1,6 +1,7 @@
 import os
 from typing import Union, Optional, Annotated
 from fastapi import FastAPI, Form, HTTPException, status
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from enum import Enum
 
@@ -24,6 +25,26 @@ app = FastAPI(
     title="Checko App",
     description="This is a simple Checko App ✔️",
 )
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+html = f"""
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>FastAPI on Vercel</title>
+        <link rel="icon" href="/static/favicon.ico" type="image/x-icon" />
+    </head>
+    <body>
+        <div class="bg-gray-200 p-4 rounded-lg shadow-lg">
+            <h1>Checko Test App</h1>
+            <ul>
+                <li><a href="/docs">api</a></li>
+            </ul>
+        </div>
+    </body>
+</html>
+"""
 
 openai_client = OpenAI(api_key=OPENAI_API_KEY)
 
