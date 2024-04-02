@@ -15,6 +15,7 @@ venv/
 env/
 lib/
 bin/
+.venv/
 
 # Compiled Python files
 *.pyc
