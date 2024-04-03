@@ -1,12 +1,12 @@
 import os
 from typing import Union, Optional, Annotated
 from fastapi import FastAPI, Form, HTTPException, status
-from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from enum import Enum
 
 from openai import OpenAI, APIStatusError, APITimeoutError, RateLimitError
-from tenacity import retry, stop_after_attempt, retry_if_exception_type, RetryError
+from tenacity import retry, stop_after_attempt, retry_if_exception_type
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
@@ -25,26 +25,34 @@ app = FastAPI(
     title="Checko App",
     description="This is a simple Checko App ✔️",
 )
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
+)
 
-html = f"""
-<!DOCTYPE html>
-<html>
-    <head>
-        <title>FastAPI on Vercel</title>
-        <link rel="icon" href="/static/favicon.ico" type="image/x-icon" />
-    </head>
-    <body>
-        <div class="bg-gray-200 p-4 rounded-lg shadow-lg">
-            <h1>Checko Test App</h1>
-            <ul>
-                <li><a href="/docs">api</a></li>
-            </ul>
-        </div>
-    </body>
-</html>
-"""
+# app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# html = f"""
+# <!DOCTYPE html>
+# <html>
+#     <head>
+#         <title>FastAPI on Vercel</title>
+#         <link rel="icon" href="/static/favicon.ico" type="image/x-icon" />
+#     </head>
+#     <body>
+#         <div class="bg-gray-200 p-4 rounded-lg shadow-lg">
+#             <h1>Checko Test App</h1>
+#             <ul>
+#                 <li><a href="/docs">api</a></li>
+#             </ul>
+#         </div>
+#     </body>
+# </html>
+# """
 
 openai_client = OpenAI(api_key=OPENAI_API_KEY)
 
